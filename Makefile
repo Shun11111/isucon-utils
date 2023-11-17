@@ -102,8 +102,9 @@ slow-off:
 	sudo mysql -e "show variables like 'slow%';"
 
 .PHONY: setup
+.PHONY: setup
 setup:
-  @echo "\e[32mSETUPを開始します\e[m"
+	@echo "\e[32mSETUPを開始します\e[m"
 	@echo "\e[32m - Fishのリポジトリを追加します\e[m"
 	sudo apt-add-repository ppa:fish-shell/release-3 -y
 	sudo apt update
