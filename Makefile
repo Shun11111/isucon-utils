@@ -7,7 +7,7 @@ isucon-user:
 	sudo -i -u isucon
 	@echo "\e[32mユーザーをisuconに設定しました\e[m"
 
-.PHONY:clear-accesslog
+.PHONY: clear-accesslog
 clear-accesslog:
 	echo "" > /var/log/nginx/access.log
 	@echo "\e[32mnginxのaccess.logを空にしました\e[m"
