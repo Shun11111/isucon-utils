@@ -5,7 +5,7 @@ PROJECT_ROOT:=/home/isucon/webapp
 # env.shに合わせて変更する
 NGINX_LOG:=/var/log/nginx/access.log
 
-.PHONY: bench
+.PHONY: bench1
 bench: isucon-user clear-accesslog pull-github do-bench alp
 	@echo "\e[32mベンチの準備が完了しました\e[m"
 
