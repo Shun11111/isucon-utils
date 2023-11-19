@@ -4,17 +4,17 @@ bench:isucon-user clear-accesslog pull-github do-bench alp
 
 .PHONY: isucon-user
 isucon-user:
-    sudo -i -u isucon
+	sudo -i -u isucon
 	@echo "\e[32mユーザーをisuconに設定しました\e[m"
 
 .PHONY: clear-accesslog
 clear-accesslog:
-    echo "" > /var/log/nginx/access.log
+	echo "" > /var/log/nginx/access.log
 	@echo "\e[32mnginxのaccess.logを空にしました\e[m"
 
 .PHONY: pull-github
 pull-github:
-    cd /home/isucon/webapp && git pull origin main
+	cd /home/isucon/webapp && git pull origin main
 	@echo "\e[32mGitHubのmainブランチから最新のソースを取得しました\e[m"
 
 .PHONY: do-bench
