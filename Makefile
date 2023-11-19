@@ -1,166 +1,128 @@
-include env.sh
-# 変数定義 ------------------------
+DATE:=$(shell date +%Y%m%d-%H%M%S)
+CD:=$(CURDIR)
+PROJECT_ROOT:=/home/isucon/webapp
 
-# SERVER_ID: env.sh内で定義
+# env.shに合わせて変更する
+DB_HOST:=127.0.0.1
+DB_PORT:=3306
+DB_USER:=isucon
+DB_PASS:=isucon
+DB_NAME:=isucondition
 
-# 問題によって変わる変数
-USER:=isucon
-BIN_NAME:=isucondition
-BUILD_DIR:=/home/isucon/webapp/go
-SERVICE_NAME:=$(BIN_NAME).go.service
-
-DB_PATH:=/etc/mysql
-NGINX_PATH:=/etc/nginx
-SYSTEMD_PATH:=/etc/systemd/system
+MYSQL_CMD:=mysql -h$(DB_HOST) -P$(DB_PORT) -u$(DB_USER) -p$(DB_PASS) $(DB_NAME)
 
 NGINX_LOG:=/var/log/nginx/access.log
-DB_SLOW_LOG:=/var/log/mysql/mariadb-slow.log
+MYSQL_LOG:=/var/log/mysql/slow-query.log
 
+.PHONY: bench-%
+bench-%: pull-%
+	make build
+	make etc
+	make log-reset
+	make restart slow-on
+	@echo "\e[32mベンチの準備が完了しました\e[m"
 
-# メインで使うコマンド ------------------------
-
-# サーバーの環境構築　ツールのインストール、gitまわりのセットアップ
-.PHONY: setup
-setup: install-tools git-setup
-
-# 設定ファイルなどを取得してgit管理下に配置する
-.PHONY: get-conf
-get-conf: check-server-id get-db-conf get-nginx-conf get-service-file get-envsh
-
-# リポジトリ内の設定ファイルをそれぞれ配置する
-.PHONY: deploy-conf
-deploy-conf: check-server-id deploy-db-conf deploy-nginx-conf deploy-service-file deploy-envsh
-
-# ベンチマークを走らせる直前に実行する
 .PHONY: bench
-bench: check-server-id mv-logs build deploy-conf restart watch-service-log
+bench: build log-reset restart slow-on
+	@echo "\e[32mベンチの準備が完了しました\e[m"
 
-# slow queryを確認する
-.PHONY: slow-query
-slow-query:
-	sudo pt-query-digest $(DB_SLOW_LOG)
-
-# alpでアクセスログを確認する
-.PHONY: alp
-alp:
-	sudo alp ltsv --file=$(NGINX_LOG) --config=/home/isucon/tool-config/alp/config.yml
-
-# pprofで記録する
-.PHONY: pprof-record
-pprof-record:
-	go tool pprof http://localhost:6060/debug/pprof/profile
-
-# pprofで確認する
-.PHONY: pprof-check
-pprof-check:
-	$(eval latest := $(shell ls -rt pprof/ | tail -n 1))
-	go tool pprof -http=localhost:8090 pprof/$(latest)
-
-# DBに接続する
-.PHONY: access-db
-access-db:
-	mysql -h $(MYSQL_HOST) -P $(MYSQL_PORT) -u $(MYSQL_USER) -p$(MYSQL_PASS) $(MYSQL_DBNAME)
-
-# 主要コマンドの構成要素 ------------------------
-
-.PHONY: install-tools
-install-tools:
-	sudo apt update
-	sudo apt upgrade
-	sudo apt install -y percona-toolkit dstat git unzip snapd graphviz tree
-
-	# alpのインストール
-	wget https://github.com/tkuchiki/alp/releases/download/v1.0.9/alp_linux_amd64.zip
-	unzip alp_linux_amd64.zip
-	sudo install alp /usr/local/bin/alp
-	rm alp_linux_amd64.zip alp
-
-.PHONY: git-setup
-git-setup:
-	# git用の設定は適宜変更して良い
-	git config --global user.email "isucon@example.com"
-	git config --global user.name "isucon"
-
-	# deploykeyの作成
-	ssh-keygen -t ed25519
-
-.PHONY: check-server-id
-check-server-id:
-ifdef SERVER_ID
-	@echo "SERVER_ID=$(SERVER_ID)"
-else
-	@echo "SERVER_ID is unset"
-	@exit 1
-endif
-
-.PHONY: set-as-s1
-set-as-s1:
-	echo "SERVER_ID=s1" >> env.sh
-
-.PHONY: set-as-s2
-set-as-s2:
-	echo "SERVER_ID=s2" >> env.sh
-
-.PHONY: set-as-s3
-set-as-s3:
-	echo "SERVER_ID=s3" >> env.sh
-
-.PHONY: get-db-conf
-get-db-conf:
-	sudo cp -R $(DB_PATH)/* ~/$(SERVER_ID)/etc/mysql
-	sudo chown $(USER) -R ~/$(SERVER_ID)/etc/mysql
-
-.PHONY: get-nginx-conf
-get-nginx-conf:
-	sudo cp -R $(NGINX_PATH)/* ~/$(SERVER_ID)/etc/nginx
-	sudo chown $(USER) -R ~/$(SERVER_ID)/etc/nginx
-
-.PHONY: get-service-file
-get-service-file:
-	sudo cp $(SYSTEMD_PATH)/$(SERVICE_NAME) ~/$(SERVER_ID)/etc/systemd/system/$(SERVICE_NAME)
-	sudo chown $(USER) ~/$(SERVER_ID)/etc/systemd/system/$(SERVICE_NAME)
-
-.PHONY: get-envsh
-get-envsh:
-	cp ~/env.sh ~/$(SERVER_ID)/home/isucon/env.sh
-
-.PHONY: deploy-db-conf
-deploy-db-conf:
-	sudo cp -R ~/$(SERVER_ID)/etc/mysql/* $(DB_PATH)
-
-.PHONY: deploy-nginx-conf
-deploy-nginx-conf:
-	sudo cp -R ~/$(SERVER_ID)/etc/nginx/* $(NGINX_PATH)
-
-.PHONY: deploy-service-file
-deploy-service-file:
-	sudo cp ~/$(SERVER_ID)/etc/systemd/system/$(SERVICE_NAME) $(SYSTEMD_PATH)/$(SERVICE_NAME)
-
-.PHONY: deploy-envsh
-deploy-envsh:
-	cp ~/$(SERVER_ID)/home/isucon/env.sh ~/env.sh
+.PHONY: pull-%
+pull-%:
+	@echo "\e[32mgit pull\e[m"
+	git fetch origin
+	git checkout origin/$(patsubst pull-%,%,$@)
+	git rebase main
 
 .PHONY: build
 build:
-	cd $(BUILD_DIR); \
-	go build -o $(BIN_NAME)
+	@echo "\e[32mNode.js appをbuildします\e[m"
+	cd nodejs && npm run build
+
+.PHONY: etc
+etc:
+	@echo "\e[32m/etc にファイルを配置します\e[m"
+	sudo rm -rf /etc/mysql
+	sudo rm -rf /etc/nginx
+	sudo cp -r mysql /etc/mysql
+	sudo cp -r nginx /etc/nginx
+
+.PHONY: etc-backup
+etc-backup:
+	@echo "\e[32m/etc を取得します\e[m"
+	sudo mv /etc/mysql mysql
+	sudo mv /etc/nginx nginx
+
+.PHONY: cat
+cat: cat-msg slow-log alp
+
+.PHONY: cat-msg
+cat-msg:
+	git log -1 --pretty=format:"%s %h" | discocat
+
+.PHONY: slow-log
+slow-log:
+	@echo "\e[32mslow-logsを出力します\e[m"
+	sudo pt-query-digest --limit=100 --filter '$$event->{bytes} <= 100000' $(MYSQL_LOG) | discocat
+
+.PHONY: mysqlslowdump
+mysqlslowdump:
+	sudo mysqldumpslow -s t $(SLOW_LOG) | head -n 20 | discocat
+
+.PHONY: log-reset
+log-reset:
+	@echo "\e[32mlogファイルを初期化します\e[m"
+	mkdir -p ~/logs/$(DATE)
+	-sudo mv -f $(MYSQL_LOG) ~/logs/$(DATE)/slow-query.txt
+	-sudo mv -f $(NGINX_LOG) ~/logs/$(DATE)/access.txt
+
+ALPSORT=sum
+ALPM=""
+.PHONY: alp
+alp:
+	@echo "\e[32maccess logをalpで出力します\e[m"
+	sudo cat $(NGINX_LOG) | alp ltsv --sort $(ALPSORT) -m $(ALPM) --reverse -q | discocat
 
 .PHONY: restart
 restart:
-	sudo systemctl daemon-reload
-	sudo systemctl restart $(SERVICE_NAME)
-	sudo systemctl restart mysql
-	sudo systemctl restart nginx
+	@echo "\e[32mサービスを再起動します\e[m"
+	sudo systemctl restart mysql.service
+	sudo systemctl restart nginx.service
+	sudo systemctl restart isucondition.nodejs.service
 
-.PHONY: mv-logs
-mv-logs:
-	$(eval when := $(shell date "+%s"))
-	mkdir -p ~/logs/$(when)
-	sudo test -f $(NGINX_LOG) && \
-		sudo mv -f $(NGINX_LOG) ~/logs/nginx/$(when)/ || echo ""
-	sudo test -f $(DB_SLOW_LOG) && \
-		sudo mv -f $(DB_SLOW_LOG) ~/logs/mysql/$(when)/ || echo ""
+.PHONY: slow-on
+slow-on:
+	@echo "\e[32mMySQL slow-querry ONにします\e[m"
+	sudo mysql -e "set global slow_query_log_file = '$(MYSQL_LOG)'; set global long_query_time = 0; set global slow_query_log = ON;"
+	sudo mysql -e "show variables like 'slow%';"
 
-.PHONY: watch-service-log
-watch-service-log:
-	sudo journalctl -u $(SERVICE_NAME) -n10 -f
+.PHONY: slow-off
+slow-off:
+	@echo "\e[32mMySQL slow-querry OFFにします\e[m"
+	sudo mysql -e "set global slow_query_log = OFF;"
+	sudo mysql -e "show variables like 'slow%';"
+
+.PHONY: setup
+setup:
+	@echo "\e[32mSETUPを開始します\e[m"
+	@echo "\e[32m - Fishのリポジトリを追加します\e[m"
+	sudo apt-add-repository ppa:fish-shell/release-3 -y
+	sudo apt update
+	@echo "\e[32m - 必要なパッケージをインストールします\e[m"
+	sudo apt install -y percona-toolkit fish git unzip dstat
+	@echo "\e[32m - fishを起動するように設定します\e[m"
+	echo exec fish >> /home/isucon/.bashrc
+	@echo "\e[32m - Gitのユーザ名を設定します\e[m"
+	git config --global user.name "isucon"
+	@echo "\e[32m - vimrcをちょっとだけ良くします\e[m"
+	wget https://gist.githubusercontent.com/Hiroya-W/8d6f6dd6667f14b8182c2144c68fdcd3/raw/e71f3074d0cd452108eb3d0b2e9c60bc27c3c89c/.vimrc
+	mv .vimrc ~/.vimrc
+	@echo "\e[32m - alpをインストールします\e[m"
+	wget https://github.com/tkuchiki/alp/releases/download/v1.0.7/alp_linux_amd64.zip
+	unzip alp_linux_amd64.zip -d alp_linux_amd64
+	sudo install ./alp_linux_amd64/alp /usr/local/bin
+	rm -r alp_linux_amd64 alp_linux_amd64.zip
+	@echo "\e[32m - discordcatをインストールします\e[m"
+	go install github.com/wan-nyan-wan/discocat@latest
+	mkdir -p ~/.config/discocat
+	cp $HOME/go/pkg/mod/github.com/wan-nyan-wan/discocat@v0.0.0-20200904032027-e0871c377bd2 $HOME/.config/discocat/config.yml
+	@echo "\e[32mSETUPが完了しました\e[m"
