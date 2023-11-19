@@ -1,5 +1,5 @@
-.PHONY:bench
-bench:isucon-user clear-accesslog pull-github do-bench alp
+.PHONY:bench1
+bench1:isucon-user clear-accesslog pull-github do-bench alp
 	@echo "\e[32mベンチの準備が完了しました\e[m"
 
 .PHONY:isucon-user
