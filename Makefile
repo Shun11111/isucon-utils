@@ -6,7 +6,7 @@ PROJECT_ROOT:=/home/isucon/webapp
 NGINX_LOG:=/var/log/nginx/access.log
 
 .PHONY: bench
-bench:isucon-user clear-accesslog pull-github do-bench alp
+bench:isucon-user	clear-accesslog	pull-github	do-bench alp
 	@echo "\e[32mベンチの準備が完了しました\e[m"
 
 .PHONY: isucon-user
