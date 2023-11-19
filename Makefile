@@ -25,11 +25,11 @@ setup: install-tools git-setup
 
 # 設定ファイルなどを取得してgit管理下に配置する
 .PHONY: get-conf
-get-conf: check-server-id get-db-conf get-nginx-conf get-service-file
+get-conf: check-server-id get-db-conf get-nginx-conf get-service-file get-envsh
 
 # リポジトリ内の設定ファイルをそれぞれ配置する
 .PHONY: deploy-conf
-deploy-conf: check-server-id deploy-db-conf deploy-nginx-conf deploy-service-file
+deploy-conf: check-server-id deploy-db-conf deploy-nginx-conf deploy-service-file deploy-envsh
 
 # ベンチマークを走らせる直前に実行する
 .PHONY: bench
@@ -93,17 +93,17 @@ else
 	@exit 1
 endif
 
-# .PHONY: set-as-s1
-# set-as-s1:
-# 	echo "SERVER_ID=s1" >> env.sh
+.PHONY: set-as-s1
+set-as-s1:
+	echo "SERVER_ID=s1" >> env.sh
 
-# .PHONY: set-as-s2
-# set-as-s2:
-# 	echo "SERVER_ID=s2" >> env.sh
+.PHONY: set-as-s2
+set-as-s2:
+	echo "SERVER_ID=s2" >> env.sh
 
-# .PHONY: set-as-s3
-# set-as-s3:
-# 	echo "SERVER_ID=s3" >> env.sh
+.PHONY: set-as-s3
+set-as-s3:
+	echo "SERVER_ID=s3" >> env.sh
 
 .PHONY: get-db-conf
 get-db-conf:
@@ -120,9 +120,9 @@ get-service-file:
 	sudo cp $(SYSTEMD_PATH)/$(SERVICE_NAME) ~/$(SERVER_ID)/etc/systemd/system/$(SERVICE_NAME)
 	sudo chown $(USER) ~/$(SERVER_ID)/etc/systemd/system/$(SERVICE_NAME)
 
-# .PHONY: get-envsh
-# get-envsh:
-# 	cp ~/env.sh ~/$(SERVER_ID)/home/isucon/env.sh
+.PHONY: get-envsh
+get-envsh:
+	cp ~/env.sh ~/$(SERVER_ID)/home/isucon/env.sh
 
 .PHONY: deploy-db-conf
 deploy-db-conf:
@@ -136,9 +136,9 @@ deploy-nginx-conf:
 deploy-service-file:
 	sudo cp ~/$(SERVER_ID)/etc/systemd/system/$(SERVICE_NAME) $(SYSTEMD_PATH)/$(SERVICE_NAME)
 
-# .PHONY: deploy-envsh
-# deploy-envsh:
-# 	cp ~/$(SERVER_ID)/home/isucon/env.sh ~/env.sh
+.PHONY: deploy-envsh
+deploy-envsh:
+	cp ~/$(SERVER_ID)/home/isucon/env.sh ~/env.sh
 
 .PHONY: build
 build:
