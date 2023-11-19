@@ -15,10 +15,10 @@ bench1:
 # bench1:isucon-user clear-accesslog pull-github do-bench alp-log
 # 	@echo "\e[32mベンチの準備が完了しました\e[m"
 
-.PHONY:isucon-user
-isucon-user:
-	sudo -i -u isucon
-	@echo "\e[32mユーザーをisuconに設定しました\e[m"
+# .PHONY:isucon-user
+# isucon-user:
+# 	sudo -i -u isucon
+# 	@echo "\e[32mユーザーをisuconに設定しました\e[m"
 
 .PHONY: clear-accesslog
 clear-accesslog:
