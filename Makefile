@@ -38,5 +38,5 @@ do-bench:
 .PHONY:alp-log
 alp-log:
 	@echo "\e[32malpを実行します\e[m"
-	cat /var/log/nginx/access.log | alp ltsv --sort sum -m "^/\?jwt=[A-Za-z0-9\-_\.]+,^/api/condition/[a-fA-F0-9\\-]+,^/api/isu/[a-fA-F0-9\\-]+/icon,^/api/isu/[a-fA-F0-9\\-]+/,^/api/isu/[a-fA-F0-9\\-],^/isu/[a-fA-F0-9\\-]" --reverse -q
+	cat /var/log/nginx/access.log | alp ltsv --sort sum -m "^/\?jwt=[A-Za-z0-9\-_\. ]+,^/api/condition/[a-fA-F0-9\\-]+,^/api/isu/[a-fA-F0-9\\-]+/icon,^/api/isu/[a-fA-F0-9\\-]+/,^/api/isu/[a-fA-F0-9\\-],^/isu/[a-fA-F0-9\\-]" --reverse -q
 	@echo "\e[32m完了しました\e[m"
