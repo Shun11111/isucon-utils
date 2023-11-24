@@ -1,5 +1,17 @@
-.PHONY:bench1
-bench1:
+.PHONY:setup
+setup:
+	@echo "\e[32mSETUPを開始します\e[m"
+	@echo "\e[32m - Gitのユーザ名を設定します\e[m"
+	git config --global user.name "isucon"
+	@echo "\e[32m - alpをインストールします\e[m"
+	wget https://github.com/tkuchiki/alp/releases/download/v1.0.7/alp_linux_amd64.zip
+	unzip alp_linux_amd64.zip -d alp_linux_amd64
+	sudo install ./alp_linux_amd64/alp /usr/local/bin
+	rm -r alp_linux_amd64 alp_linux_amd64.zip
+	@echo "\e[32mSETUPが完了しました\e[m"
+
+.PHONY:bench
+bench:
 	echo "" > /var/log/nginx/access.log
 	@echo "\e[32mnginxのaccess.logを空にしました\e[m"
 	cd /home/isucon/webapp && git pull origin main
@@ -10,15 +22,6 @@ bench1:
 	cat /var/log/nginx/access.log | alp ltsv --sort sum -m "^/api/condition/[a-fA-F0-9\\-]+,^/api/isu/[a-fA-F0-9\\-]+/icon,^/api/isu/[a-fA-F0-9\\-]+/" --reverse -q
 	@echo "\e[32m完了しました\e[m"
 
-
-# .PHONY:bench1
-# bench1:isucon-user clear-accesslog pull-github do-bench alp-log
-# 	@echo "\e[32mベンチの準備が完了しました\e[m"
-
-# .PHONY:isucon-user
-# isucon-user:
-# 	sudo -i -u isucon
-# 	@echo "\e[32mユーザーをisuconに設定しました\e[m"
 
 .PHONY: clear-accesslog
 clear-accesslog:
